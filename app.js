@@ -27,8 +27,6 @@ async function doLogin(){
 		console.log("Unable to fetch external IP!");
 	}
 
-	setTimeout(doLogin, 10000);
-
 }
 
 
