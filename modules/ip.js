@@ -15,7 +15,7 @@ async function getMyIP() {
 
         for (let x = 0; x < urls.length; x++) {
             
-            res = await axios.get(urls[x]);
+            let res = await axios.get(urls[x]);
 
             if(res.data){
                 ip = res.data;
