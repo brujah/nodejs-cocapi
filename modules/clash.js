@@ -1,16 +1,20 @@
 const axios = require('axios');
 
 const api_baseurl = "https://api.clashofclans.com/v1";
-let api_token = "";
+
+let api = {
+    connected: false,
+    token: ""
+};
 
 exports.getToken = getToken;
 
 async function getToken(ip, clantag, developer_email, developer_password) {
 
-    let token = false;
-	
-	if(ip == "" || clantag == "" || developer_email == "" || developer_password == ""){
-		return false;
+    if(ip == "" || clantag == "" || developer_email == "" || developer_password == ""){
+        api.connected = false;
+        api.token = "";
+        return api;
 	}
     
     try {
@@ -18,28 +22,29 @@ async function getToken(ip, clantag, developer_email, developer_password) {
         // Make sure tag starts with #
         clantag = fixTag(clantag);
 
-        if (api_token != "") {
+        if (api.token != "") {
 
-            // We have an api_token created, lets try and fetch some data and see if it still available to use
-            axios.defaults.headers.common['Authorization'] = "Bearer " + api_token;
+            // We have an api token created, lets try and fetch some data and see if it still available to use
+            axios.defaults.headers.common['Authorization'] = "Bearer " + api.token;
 
-            let res = await axios.get(api_baseurl + "/locations");
+            let location_res = await axios.get(api_baseurl + "/locations");
 
-            if (res.status == 200) {
-                console.log("We have a working api_token, no need to create a new one!");
-                return true;
+            if (location_res.status == 200) {
+                console.log("We have a working api token, no need to create a new one!");
+                api.connected = true;
+                return api;
             }
         }
 
         axios.defaults.headers.post['content-type'] = 'application/json';
 
-        let res = await axios.post('https://developer.clashofclans.com/api/login', { email: developer_email, password: developer_password });
+        let login_res = await axios.post('https://developer.clashofclans.com/api/login', { email: developer_email, password: developer_password });
 
-        if (res.data.status.message) {
+        if (login_res.data.status.message) {
 
-            if (res.data.status.message == "ok") {
+            if (login_res.data.status.message == "ok") {
 
-                let cookies = res.headers['set-cookie'];
+                let cookies = login_res.headers['set-cookie'];
                 let session_cookie = "";
 
                 if (cookies) {
@@ -57,22 +62,22 @@ async function getToken(ip, clantag, developer_email, developer_password) {
 
                     axios.defaults.headers.post['cookie'] = session_cookie;
 
-                    res = await axios.post('https://developer.clashofclans.com/api/apikey/list');
+                    let list_res = await axios.post('https://developer.clashofclans.com/api/apikey/list');
 
-                    if (res.data.status.message) {
+                    if (list_res.data.status.message) {
 
-                        if (res.data.status.message == "ok") {
+                        if (list_res.data.status.message == "ok") {
 
                             let myip_added = false;
-                            let oldkeys = res.data.keys;
+                            let oldkeys = list_res.data.keys;
 
                             // Loop through all keys and see if we have one for this IP and clantag
-                            for (var x = 0; x < res.data.keys.length; x++) {
+                            for (var x = 0; x < oldkeys.length; x++) {
 
-                                if (res.data.keys[x].cidrRanges[0] == ip && res.data.keys[x].name == clantag) {
-                                    api_token = res.data.keys[x].key;
+                                if (oldkeys[x].cidrRanges[0] == ip && oldkeys[x].name == clantag) {
+                                    api.token = oldkeys[x].key;
+                                    api.connected = true;
                                     myip_added = true;
-                                    token = true;
                                     console.log("Found existing token for this IP and clantag!");
                                     break;
                                 }
@@ -81,13 +86,12 @@ async function getToken(ip, clantag, developer_email, developer_password) {
                             // Create a key if needed
                             if(!myip_added){
                                 
-                                res = await axios.post('https://developer.clashofclans.com/api/apikey/create', { name: clantag, description: ip, cidrRanges: ip });
+                                let create_res = await axios.post('https://developer.clashofclans.com/api/apikey/create', { name: clantag, description: ip, cidrRanges: ip });
 
-                                if (res.data.status.message) {
+                                if (create_res.data.status.message) {
 
-                                    if (res.data.status.message == "ok") {
-                                        api_token = res.data.key.key;
-                                        token = true;
+                                    if (create_res.data.status.message == "ok") {
+                                        api.token = create_res.data.key.key;
                                         console.log("Created new token for this IP and clantag!");
                                     }
 
@@ -103,11 +107,11 @@ async function getToken(ip, clantag, developer_email, developer_password) {
                                     let oldkey_id = oldkeys[x].id;
                                     let oldkey_key = oldkeys[x].cidrRanges[0];
 
-                                    res = await axios.post('https://developer.clashofclans.com/api/apikey/revoke', { id: oldkey_id });
+                                    let revoke_res = await axios.post('https://developer.clashofclans.com/api/apikey/revoke', { id: oldkey_id });
                                     
-                                    if (res.data.status.message) {
+                                    if (revoke_res.data.status.message) {
 
-                                        if (res.data.status.message == "ok") {
+                                        if (revoke_res.data.status.message == "ok") {
                                             console.log("Deleted token for this clantag using an old IP: " + oldkey_key);
                                         }
 
@@ -120,12 +124,12 @@ async function getToken(ip, clantag, developer_email, developer_password) {
             }
         }
     } catch (err) {
-        console.log("An error occurred!");
         console.log(err);
-        api_token = "";
+        api.connected = false;
+        api.token = "";
     }
 
-    return token;
+    return api;
 
 }
 

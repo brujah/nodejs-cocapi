@@ -6,26 +6,26 @@ const Clash = require('./modules/clash.js');
 const clantag = process.env.CLASH_MYCLANTAG;
 const clashdeveloper_email_address = process.env.CLASH_DEVELOPER_EMAIL;
 const clashdeveloper_password = process.env.CLASH_DEVELOPER_PASSWORD;
-let external_ip = "";
 
 doLogin();
 
 async function doLogin(){
 
 	// Get external IP
-	external_ip = await IP.getMyIP();
+	let external_ip = await IP.getMyIP();
 
 	if (external_ip != "") {
 
-		let token = await Clash.getToken(external_ip, clantag, clashdeveloper_email_address, clashdeveloper_password);
+		let api = await Clash.getToken(external_ip, clantag, clashdeveloper_email_address, clashdeveloper_password);
 
-		if(token){
-			console.log("We are good to go!");
-		}
-
+		console.log("Able to query API: " + api.connected);
+		console.log("Token: " + api.token);
+		
 	} else {
 		console.log("Unable to fetch external IP!");
 	}
+
+	setTimeout(doLogin, 5000);
 
 }
 
