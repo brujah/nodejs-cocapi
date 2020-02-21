@@ -87,7 +87,7 @@ async function checkValidToken(token){
     if (token != "") {
 
         // We have an api token created, lets try and fetch some data and see if it still available to use
-        axios.defaults.headers.common['Authorization'] = "Bearer " + api.token;
+        axios.defaults.headers.common['Authorization'] = "Bearer " + token;
 
         let res = await axios.get(api_baseurl + "/locations");
 
