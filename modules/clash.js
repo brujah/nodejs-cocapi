@@ -66,7 +66,7 @@ exports.getToken = getToken;
 async function getDeveloperCookies(developer_email, developer_password) {
 
     let cookies = "";
-    let res = await axios.post(clash_baseurl + '/login654654654', { email: developer_email, password: developer_password });
+    let res = await axios.post(clash_baseurl + '/login', { email: developer_email, password: developer_password });
 
     if (res.data.status.message) {
 
